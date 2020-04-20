@@ -15,19 +15,21 @@ namespace GrpcServiceStream.Services
         {
             _logger = logger;
         }
-        public override async Task<NumberResponse> SendNumber(IAsyncStreamReader<NumberRequest> requestStream, ServerCallContext context)
+        public override async Task SendNumber(IAsyncStreamReader<NumberRequest> requestStream, IServerStreamWriter<NumberResponse> responseStream, ServerCallContext context)
         {
-            var total = 0;
-
-
             await foreach (var number in requestStream.ReadAllAsync())
             {
                 _logger.LogInformation($"Recieved number -> {number.Value}");
-                total += number.Value;
+
+                await Task.Delay(new Random().Next(1, 5) * 100);
+                var response = new NumberResponse
+                {
+                    Result = number.Value * number.Value,
+                    Index = number.Index
+                };
+                await responseStream.WriteAsync(response);
 
             }
-
-            return new NumberResponse { Result = total };
         }
     }
 }

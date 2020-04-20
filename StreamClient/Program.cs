@@ -1,4 +1,5 @@
-﻿using Grpc.Net.Client;
+﻿using Grpc.Core;
+using Grpc.Net.Client;
 using GrpcServiceStream;
 using System;
 using System.Threading.Tasks;
@@ -26,21 +27,32 @@ namespace StreamClient
 
         private static async Task StreamNumbersFromClientToServer(NumericsClient client)
         {
-            using (var call = client.SendNumber())
+            using var call = client.SendNumber();
+
+            var t1 = Task.Run(async () =>
             {
-                for (var i = 0; i < 10; i++)
+                for (var i = 0; i < 20; i++)
                 {
-                    var number = RNG.Next(5);
+                    var number = RNG.Next(1, 100);
                     Console.WriteLine($"Sending {number}");
-                    await call.RequestStream.WriteAsync(new NumberRequest { Value = number });
-                    await Task.Delay(1000);
+                    await call.RequestStream.WriteAsync(new NumberRequest { Value = number, Index = i });
+                    await Task.Delay(new Random().Next(1, 5) * 100);
                 }
+            });
 
-                await call.RequestStream.CompleteAsync();
+            var t2 = Task.Run(async () =>
+            {
+                await foreach (var number in call.ResponseStream.ReadAllAsync())
+                {
+                    Console.WriteLine($"Recieved : [{number.Index}] power {Math.Sqrt(number.Result)} -> {number.Result}");
+                }
+            });
 
-                var response = await call;
-                Console.WriteLine($"Result: {response.Result}");
-            }
+            await Task.WhenAll(t1, t2);
+
+
+
+
         }
     }
 }

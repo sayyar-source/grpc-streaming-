@@ -6,12 +6,16 @@ package scalar;
 
 service Numerics {
 
-  rpc SendNumber (stream NumberRequest) returns (NumberResponse);
+  rpc SendNumber (stream NumberRequest) returns (stream NumberResponse);
 }
 
 message NumberRequest {
+
   int32 value = 1;
+  int32 index = 2;
 }
+
 message NumberResponse {
   int32 result = 1;
+  int32 index = 2;
 }
