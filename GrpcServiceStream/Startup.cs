@@ -32,7 +32,7 @@ namespace GrpcServiceStream
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcService<NumbersService>();
+                endpoints.MapGrpcService<FileService>();
 
                 endpoints.MapGet("/", async context =>
                 {

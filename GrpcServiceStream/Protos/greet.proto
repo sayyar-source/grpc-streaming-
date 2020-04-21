@@ -1,17 +1,16 @@
 syntax = "proto3";
-import "google/protobuf/empty.proto";
 option csharp_namespace = "GrpcServiceStream";
 
 package scalar;
 
-service Numerics {
+service Files {
 
-  rpc SendNumber (stream NumberRequest) returns (NumberResponse);
+  rpc SendFile(Chunk) returns (SendResult);
+}
+message Chunk {
+        bytes Content = 1;
 }
 
-message NumberRequest {
-  int32 value = 1;
-}
-message NumberResponse {
-  int32 result = 1;
+message SendResult {
+        bool Success = 1;
 }

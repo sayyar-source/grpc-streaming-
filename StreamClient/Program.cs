@@ -1,8 +1,10 @@
-﻿using Grpc.Net.Client;
+﻿using Google.Protobuf;
+using Grpc.Net.Client;
 using GrpcServiceStream;
 using System;
+using System.IO;
 using System.Threading.Tasks;
-using static GrpcServiceStream.Numerics;
+using static GrpcServiceStream.Files;
 
 namespace StreamClient
 {
@@ -14,33 +16,43 @@ namespace StreamClient
 
             using var channel = GrpcChannel.ForAddress("https://localhost:5001");
 
-            var client = new GrpcServiceStream.Numerics.NumericsClient(channel);
+          
+            var client = new Files.FilesClient(channel);
 
-
-            await StreamNumbersFromClientToServer(client);
-
+            Console.WriteLine("Sending");
+            await SendFile(client, @"D:\protocol_buffers.png");
+            Console.WriteLine("Done!");
             Console.ReadLine();
 
         }
-        static Random RNG = new Random();
-
-        private static async Task StreamNumbersFromClientToServer(NumericsClient client)
+        private static async Task SendFile(FilesClient client, string filePath)
         {
-            using (var call = client.SendNumber())
+            byte[] buffer;
+            FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+            try
             {
-                for (var i = 0; i < 10; i++)
-                {
-                    var number = RNG.Next(5);
-                    Console.WriteLine($"Sending {number}");
-                    await call.RequestStream.WriteAsync(new NumberRequest { Value = number });
-                    await Task.Delay(1000);
-                }
+                int length = (int)fileStream.Length;
+                buffer = new byte[length];
+                int count;
+                int sum = 0;
 
-                await call.RequestStream.CompleteAsync();
+                //System.IO.File.ReadAllBytes()
 
-                var response = await call;
-                Console.WriteLine($"Result: {response.Result}");
+                while ((count = await fileStream.ReadAsync(buffer, sum, length - sum)) > 0)
+                    sum += count;
             }
+            finally
+            {
+                fileStream.Close();
+            }
+
+            var result = await client.SendFileAsync(new Chunk
+            {
+                Content = ByteString.CopyFrom(buffer)
+            });
+
+            Console.WriteLine(result.Success);
+
         }
     }
 }
