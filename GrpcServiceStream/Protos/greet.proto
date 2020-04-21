@@ -5,7 +5,7 @@ package scalar;
 
 service Files {
 
-  rpc SendFile(Chunk) returns (SendResult);
+  rpc SendFileStream (stream Chunk) returns (SendResult);
 }
 message Chunk {
         bytes Content = 1;

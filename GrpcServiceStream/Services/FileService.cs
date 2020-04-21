@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace GrpcServiceStream.Services
 {
-    public class FileService:Files.FilesBase
+    public class FileService : Files.FilesBase
     {
         private readonly ILogger<FileService> _logger;
         private readonly IWebHostEnvironment _webenv;
@@ -17,10 +18,30 @@ namespace GrpcServiceStream.Services
             _logger = logger;
             _webenv = webenv;
         }
-        public override async Task<SendResult> SendFile(Chunk request, ServerCallContext context)
+        public override async Task<SendResult> SendFileStream(IAsyncStreamReader<Chunk> requestStream, ServerCallContext context)
         {
-            var content = request.Content.ToArray();
-            await System.IO.File.WriteAllBytesAsync(_webenv.ContentRootPath + "/Files/" + "pic1.jpg", content);
+            var fileName = _webenv.ContentRootPath + "/Files/" + "proto.jpg";
+            using var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+            int c = 0;
+
+            try
+            {
+                await foreach (var chunk in requestStream.ReadAllAsync())
+                {
+
+                    fs.Write(chunk.Content.ToArray(), 0, chunk.Content.Length);
+
+                    await Task.Delay(200);
+                    Console.WriteLine(c++);
+                }
+            }
+            finally
+            {
+
+                fs.Close();
+            }
+
+
             return new SendResult { Success = true };
         }
     }

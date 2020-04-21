@@ -20,39 +20,32 @@ namespace StreamClient
             var client = new Files.FilesClient(channel);
 
             Console.WriteLine("Sending");
-            await SendFile(client, @"D:\protocol_buffers.png");
+            await StreamFile(client, @"C:\Users\istech\Pictures\buf.jpeg");
             Console.WriteLine("Done!");
             Console.ReadLine();
 
         }
-        private static async Task SendFile(FilesClient client, string filePath)
+        private static async Task StreamFile(FilesClient client, string filePath)
         {
-            byte[] buffer;
-            FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-            try
-            {
-                int length = (int)fileStream.Length;
-                buffer = new byte[length];
-                int count;
-                int sum = 0;
 
-                //System.IO.File.ReadAllBytes()
+            using Stream source = File.OpenRead(filePath);
+            using var call = client.SendFileStream();
 
-                while ((count = await fileStream.ReadAsync(buffer, sum, length - sum)) > 0)
-                    sum += count;
-            }
-            finally
+            byte[] buffer = new byte[2048];
+            int bytesRead;
+
+            int c = 0;
+            while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
             {
-                fileStream.Close();
+
+                await call.RequestStream.WriteAsync(new Chunk { Content = Google.Protobuf.ByteString.CopyFrom(buffer) });
+
+                await Task.Delay(100);
+                Console.WriteLine(c++);
             }
 
-            var result = await client.SendFileAsync(new Chunk
-            {
-                Content = ByteString.CopyFrom(buffer)
-            });
-
-            Console.WriteLine(result.Success);
-
+            await call.RequestStream.CompleteAsync();
         }
     }
+    
 }
